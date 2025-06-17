@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>360 Escape Room</title>
+  <script src="https://cdn.jsdelivr.net/npm/marzipano@0.10.1/dist/marzipano.js"></script>
+  <style>
+    html, body, #pano {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #clueBox {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="pano"></div>
+  <div id="clueBox">You found a clue!</div>
+
+  <script>
+    window.addEventListener('load', function() {
+      if (typeof Marzipano === 'undefined') {
+        alert('Failed to load Marzipano library. Check your internet connection or library source URL.');
+        return;
+      }
+
+      var viewer = new Marzipano.Viewer(document.getElementById('pano'));
+
+      // Use the local 360° school library image
+      var source = Marzipano.ImageUrlSource.fromString("library360.png");
+      var geometry = new Marzipano.EquirectGeometry([{ width: 4000 }]);
+
+      var limiter = Marzipano.RectilinearView.limit.traditional(1024, 100*Math.PI/180);
+      var view = new Marzipano.RectilinearView(null, limiter);
+
+      var scene = viewer.createScene({ source: source, geometry: geometry, view: view });
+      scene.switchTo();
+
+      var hotspotElement = document.createElement('div');
+      hotspotElement.innerText = "🔍";
+      hotspotElement.style.fontSize = '24px';
+      hotspotElement.style.cursor = 'pointer';
+
+      hotspotElement.onclick = function() {
+        document.getElementById('clueBox').style.display = 'block';
+      };
+
+      scene.hotspotContainer().createHotspot(hotspotElement, { yaw: 0.5, pitch: 0.1 });
+    });
+  </script>
+</body>
+</html>
