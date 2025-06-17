@@ -111,14 +111,22 @@
       }
 
       function setupHoldAction(element, action) {
-        var intervalId;
+        var frameId;
+
+        function loop() {
+          action();
+          frameId = requestAnimationFrame(loop);
+        }
 
         function start() {
-          action();
-          intervalId = setInterval(action, 50);
+          if (!frameId) loop();
         }
+
         function stop() {
-          clearInterval(intervalId);
+          if (frameId) {
+            cancelAnimationFrame(frameId);
+            frameId = null;
+          }
         }
 
         element.addEventListener('mousedown', start);
@@ -135,6 +143,12 @@
       setupHoldAction(document.getElementById('panUp'), function() { pan(0, panStep); });
       setupHoldAction(document.getElementById('panDown'), function() { pan(0, -panStep); });
 
+      function normalizeKey(key) {
+        if (key === '=' || key === '+' || key === 'Add' || key === 'NumpadAdd') return '+';
+        if (key === '-' || key === '_' || key === 'Subtract' || key === 'NumpadSubtract') return '-';
+        return key;
+      }
+
       var keyActions = {
         ArrowLeft: function() { pan(-panStep, 0); },
         ArrowRight: function() { pan(panStep, 0); },
@@ -143,15 +157,30 @@
         '+': function() { zoom(-zoomStep); },
         '-': function() { zoom(zoomStep); }
       };
-      var keyInterval;
+
+      var activeKey = null;
+      var keyFrameId = null;
+
+      function keyLoop() {
+        if (activeKey && keyActions[activeKey]) {
+          keyActions[activeKey]();
+          keyFrameId = requestAnimationFrame(keyLoop);
+        }
+      }
+
       document.addEventListener('keydown', function(e) {
-        if (keyInterval || !keyActions[e.key]) return;
-        keyActions[e.key]();
-        keyInterval = setInterval(keyActions[e.key], 50);
+        var key = normalizeKey(e.key);
+        if (!keyActions[key] || activeKey) return;
+        e.preventDefault();
+        activeKey = key;
+        keyLoop();
       });
-      document.addEventListener('keyup', function() {
-        clearInterval(keyInterval);
-        keyInterval = null;
+
+      document.addEventListener('keyup', function(e) {
+        if (!activeKey) return;
+        cancelAnimationFrame(keyFrameId);
+        keyFrameId = null;
+        activeKey = null;
       });
     });
   </script>
