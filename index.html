@@ -97,25 +97,62 @@
       var minFov = 30 * Math.PI / 180;
       var maxFov = 100 * Math.PI / 180;
       var zoomStep = 5 * Math.PI / 180;
-      var panStep = 0.1;
+      var panStep = 0.02;
+
+      function zoom(delta) {
+        var fov = view.fov() + delta;
+        fov = Math.max(minFov, Math.min(maxFov, fov));
+        view.setFov(fov);
+      }
 
       function pan(yawDelta, pitchDelta) {
         view.setYaw(view.yaw() + yawDelta);
         view.setPitch(view.pitch() + pitchDelta);
       }
 
-      document.getElementById('zoomIn').onclick = function() {
-        var fov = Math.max(minFov, view.fov() - zoomStep);
-        view.setFov(fov);
+      function setupHoldAction(element, action) {
+        var intervalId;
+
+        function start() {
+          action();
+          intervalId = setInterval(action, 50);
+        }
+        function stop() {
+          clearInterval(intervalId);
+        }
+
+        element.addEventListener('mousedown', start);
+        element.addEventListener('touchstart', function(e) { e.preventDefault(); start(); });
+        ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(function(ev) {
+          element.addEventListener(ev, stop);
+        });
+      }
+
+      setupHoldAction(document.getElementById('zoomIn'), function() { zoom(-zoomStep); });
+      setupHoldAction(document.getElementById('zoomOut'), function() { zoom(zoomStep); });
+      setupHoldAction(document.getElementById('panLeft'), function() { pan(-panStep, 0); });
+      setupHoldAction(document.getElementById('panRight'), function() { pan(panStep, 0); });
+      setupHoldAction(document.getElementById('panUp'), function() { pan(0, panStep); });
+      setupHoldAction(document.getElementById('panDown'), function() { pan(0, -panStep); });
+
+      var keyActions = {
+        ArrowLeft: function() { pan(-panStep, 0); },
+        ArrowRight: function() { pan(panStep, 0); },
+        ArrowUp: function() { pan(0, panStep); },
+        ArrowDown: function() { pan(0, -panStep); },
+        '+': function() { zoom(-zoomStep); },
+        '-': function() { zoom(zoomStep); }
       };
-      document.getElementById('zoomOut').onclick = function() {
-        var fov = Math.min(maxFov, view.fov() + zoomStep);
-        view.setFov(fov);
-      };
-      document.getElementById('panLeft').onclick = function() { pan(-panStep, 0); };
-      document.getElementById('panRight').onclick = function() { pan(panStep, 0); };
-      document.getElementById('panUp').onclick = function() { pan(0, panStep); };
-      document.getElementById('panDown').onclick = function() { pan(0, -panStep); };
+      var keyInterval;
+      document.addEventListener('keydown', function(e) {
+        if (keyInterval || !keyActions[e.key]) return;
+        keyActions[e.key]();
+        keyInterval = setInterval(keyActions[e.key], 50);
+      });
+      document.addEventListener('keyup', function() {
+        clearInterval(keyInterval);
+        keyInterval = null;
+      });
     });
   </script>
 </body>
